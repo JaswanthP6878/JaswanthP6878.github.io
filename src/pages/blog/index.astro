@@ -6,7 +6,6 @@ const posts = await Astro.glob("./*.md*");
 
 const sortedPosts = posts.sort((a, b) => Date.parse(b.frontmatter.date) - Date.parse(a.frontmatter.date));
 ---
-
 <BaseLayout title="JP's blog">
 	<div class="headings">
 		<h3>Blog Posts</h3>
