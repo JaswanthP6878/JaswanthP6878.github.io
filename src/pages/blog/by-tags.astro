@@ -23,7 +23,7 @@ const tags = getAllTags(posts)
 	</div>
     {tags.map((tag) => {
         return (
-        <h4 class = "tag-name">{tag}</h4>
+        <h2 class = "tag-name">{tag}</h2>
         <ul class="post-list">
 		{
 			posts.filter((post) => post.frontmatter.tags?.includes(tag)).map((post) => {
@@ -60,6 +60,6 @@ const tags = getAllTags(posts)
 		display: inline-block;
 	}
     .tag-name {
-        text-decoration-line: underline;
+        text-decoration-line: overline;
     }
 </style>
