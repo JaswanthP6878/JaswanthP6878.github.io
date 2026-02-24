@@ -2,106 +2,97 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import ProjectCard from "../components/ProjectCard.astro";
 import PostLink from "../components/PostLink.astro";
+import { getPublishedPosts } from "../lib/blog";
 
-let posts = await Astro.glob("./blog/*.md*");
-let sortedPosts = posts.sort((a, b) => Date.parse(b.frontmatter.date) - Date.parse(a.frontmatter.date));
-if (sortedPosts.length < 3) {
-	sortedPosts = sortedPosts;
-} else {
-	sortedPosts = sortedPosts.slice(0, 3);
-}
+const posts = await getPublishedPosts();
+const sortedPosts = posts.slice(0, 3);
 ---
-<BaseLayout title="Home">
-	<div class="bio">
-		<p>
-			Hi, I am Jaswanth, A Backend and DevOps engineer, Apart from my job which deals with a java codebase and a k8s platform, I am interested in Distributed Systems, Language Design,
-			Networking.
-		</p>
 
-		<p>
-			I am also currently enjoying playing around with the Rust programming language
-		</p>
-	</div>
-	<div class="project">
-		<h3>Projects</h3>
-		<div class="projectList">
-			<ProjectCard
-				heading="Chip-8 emulator"
-				desc="software emulator for running chip-8 spec games"
-				link="https://github.com/JaswanthP6878/chip8-emulator"
-			/>
-			<ProjectCard
-				heading="MapReduceMini"
-				desc="An implementation map-reduce framework"
-				link="https://github.com/JaswanthP6878/MapReduceMini"
-			/>
-			<ProjectCard
-				heading="CodeCompete"
-				desc="1v1 code platform for friends to compete to solve cp problems."
-				link="https://github.com/JaswanthP6878/CodeCompete"
-			/>
-			<ProjectCard
-				heading="MoviesApi"
-				desc="a rate-limited web api for movie info"
-				link="https://github.com/JaswanthP6878/MoviesAPI"
-			/>
-			<ProjectCard
-				heading="Snippet Box"
-				desc="github-gist inspired site to post snippets of info",
-				link="https://github.com/JaswanthP6878/snippet-box"
-			/>
-		</div>
-	</div>
+<BaseLayout title="Home" description="Backend and distributed systems engineering notes, projects, and implementation walkthroughs.">
+  <div class="bio">
+    <p>
+    Hi, I’m Jaswanth — a software and systems engineer building backend and infrastructure platforms with Java and Kubernetes. 
+    I’m deeply interested in distributed systems and in designing reliable, scalable services that operate under real-world constraints.
+    </p>
+    <p>
+    Currently pursuing a Master’s in Artificial Intelligence at Boston University, I’m focused on bringing systems thinking into AI engineering — from scaling model training and inference workloads to designing robust infrastructure for production-grade machine learning systems.
+    </p>
+  </div>
+  <div class="project">
+    <h3>Projects</h3>
+    <div class="projectList">
+      <ProjectCard
+        heading="Chip-8 emulator"
+        desc="software emulator for running chip-8 spec games"
+        link="https://github.com/JaswanthP6878/chip8-emulator"
+      />
+      <ProjectCard
+        heading="MapReduceMini"
+        desc="An implementation map-reduce framework"
+        link="https://github.com/JaswanthP6878/MapReduceMini"
+      />
+      <ProjectCard
+        heading="CodeCompete"
+        desc="1v1 code platform for friends to compete to solve cp problems."
+        link="https://github.com/JaswanthP6878/CodeCompete"
+      />
+      <ProjectCard
+        heading="MoviesApi"
+        desc="a rate-limited web api for movie info"
+        link="https://github.com/JaswanthP6878/MoviesAPI"
+      />
+      <ProjectCard
+        heading="Snippet Box"
+        desc="github-gist inspired site to post snippets of info"
+        link="https://github.com/JaswanthP6878/snippet-box"
+      />
+    </div>
+  </div>
 
-	<div class="blogPosts">
-		<h3>Blog</h3>
-		<ul class="postList">
-			{
-				sortedPosts.map((post) => {
-					return (
-						<PostLink
-							title={post.frontmatter.title}
-							url={post.url}
-							date={post.frontmatter.date}
-						/>
-					);
-				})
-			}
-		</ul>
-	</div>
+  <div class="blogPosts">
+    <h3>Blog</h3>
+    <ul class="postList">
+      {
+        sortedPosts.map((post) => (
+          <PostLink title={post.data.title} url={`/blog/${post.slug}/`} date={post.data.date} />
+        ))
+      }
+    </ul>
+  </div>
 
-	<h4 class = "allposts"> <a href="/blog">All posts &rightarrow;</a></h4>
+  <h4 class="allposts"><a href="/blog">All posts &rightarrow;</a></h4>
 </BaseLayout>
 
 <style>
-	.bio {
-		margin-top: 1em;
-	}
+  .bio {
+    margin-top: 1em;
+  }
 
-	.projectList {
-		display: flex;
-		flex-direction: row;
-		flex-wrap: wrap;
-		row-gap: 10px;
-	}
-	.postList {
-		margin-left: 0;
-		padding-left: 0;
-		list-style: none;
-		min-height: 20vh;
-	}
-	
-	.allposts {
-		text-align: end;
-	}
-	.allposts a {
-		text-decoration: none;
-		color: black;
+  .projectList {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    row-gap: 10px;
+  }
 
-	}
-	.allposts a:hover {
-		text-decoration-line: underline;
-		color: black;
-		
-	}
+  .postList {
+    margin-left: 0;
+    padding-left: 0;
+    list-style: none;
+    min-height: 20vh;
+  }
+
+  .allposts {
+    text-align: end;
+  }
+
+  .allposts a {
+    text-decoration: none;
+    color: black;
+  }
+
+  .allposts a:hover {
+    text-decoration-line: underline;
+    color: black;
+  }
 </style>

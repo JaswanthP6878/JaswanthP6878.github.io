@@ -1,8 +1,9 @@
 ---
-layout: "../../layouts/BlogLayout.astro"
-title: Writing a MapReduce tool..
+title: "Writing a MapReduce tool"
 date: "2023-10-12"
-tags: ["Distributed Systems"]
+tags: ["distributed-systems"]
+summary: "A practical walkthrough of building a mini MapReduce runtime, with master-worker coordination and intermediate data handling."
+difficulty: "intermediate"
 ---
 ## Introduction:
 Map reduce has been a core part of Big data processing ever since it was conceived back in 2004 by Google. Google had a growing need for a sort of framework which helped in dealing with large data processing spanning multiple servers. Another Requirement for them is to protect the programmer from the underlying complexity and provide him with a simple interface to perform these processing tasks. So, They created the map-reduce framework inspired by the functional programming concepts of mappers and reducers. In this framework, programmers have to write the map function and the reduce function and call the framework passing in the functions to it, then the framework splits into a map-phase and a reduce phase and uses the map and reduce function respectively in each of those phases. There are several Implementations of map-reduce framework outside of google, one particularly famous one is the Hadoop's map-reduce framework.

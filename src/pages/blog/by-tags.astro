@@ -1,65 +1,79 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import PostLink from "../../components/PostLink.astro";
-BaseLayout
-const posts = await Astro.glob("./*.md*")
-function getAllTags(posts) {
-    const data = new Set();
-    posts.forEach(post => {
-        let tags = post.frontmatter.tags
-        tags.forEach(tag => {
-            data.add(tag)
-        });
-    });
-    return [...data]
+import { formatTagLabel, getPublishedPosts, sortPosts } from "../../lib/blog";
+
+const posts = await getPublishedPosts();
+const tagGroups = new Map<string, typeof posts>();
+
+for (const post of posts) {
+  for (const tag of post.data.tags) {
+    const existing = tagGroups.get(tag) ?? [];
+    existing.push(post);
+    tagGroups.set(tag, sortPosts(existing));
+  }
 }
-const tags = getAllTags(posts)
+
+const sortedTags = [...tagGroups.keys()].sort((a, b) => a.localeCompare(b));
 ---
-<!-- need to write the actual logic for the page -->
-<BaseLayout title="blog page">
-	<div class="headings">
-		<h3>Blog Posts by tag</h3>
-		<h3><a href="/blog">Back to all posts</a></h3>
-	</div>
-    {tags.map((tag) => {
-        return (
-        <h2 class = "tag-name">{tag}</h2>
+
+<BaseLayout title="Blog posts by tag" description="Browse backend and distributed systems posts grouped by topic tags.">
+  <div class="headings">
+    <h3>Blog Posts by Tag</h3>
+    <h3><a class="page-nav-link" href="/blog">Back to all posts</a></h3>
+  </div>
+  {
+    sortedTags.map((tag) => (
+      <section>
+        <h2 class="tag-name">{formatTagLabel(tag)}</h2>
         <ul class="post-list">
-		{
-			posts.filter((post) => post.frontmatter.tags?.includes(tag)).map((post) => {
-				return (
-					<PostLink
-						title={post.frontmatter.title}
-						url={post.url}
-						date={post.frontmatter.date}
-					/>
-				);
-			})
-		}
-	</ul>
-        )
-    })}
-	
+          {tagGroups.get(tag)?.map((post) => (
+            <PostLink title={post.data.title} url={`/blog/${post.slug}/`} date={post.data.date} />
+          ))}
+        </ul>
+      </section>
+    ))
+  }
 </BaseLayout>
 
 <style>
-	.post-list {
-		margin-left: 0;
-		padding-left: 0;
-		list-style: none;
-	}
-	.headings {
-		display: flex;
-		flex-direction: row;
-		align-items: center;
-		justify-content: space-between;
-		margin-top: 16px;
-	}
-	h3,
-	h4 {
-		display: inline-block;
-	}
-    .tag-name {
-        text-decoration-line: overline;
-    }
+  .post-list {
+    margin-left: 0;
+    padding-left: 0;
+    list-style: none;
+  }
+
+  .headings {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 16px;
+  }
+
+  h3,
+  h4 {
+    display: inline-block;
+  }
+
+  .page-nav-link {
+    text-decoration: none;
+    color: rgb(30, 28, 28);
+  }
+
+  .page-nav-link:hover {
+    color: black;
+    text-decoration: underline solid #2a7ae2 2px;
+  }
+
+  .page-nav-link:focus-visible {
+    outline: 2px solid #2a7ae2;
+    outline-offset: 2px;
+    border-radius: 0.15rem;
+  }
+
+  .tag-name {
+    text-decoration-line: overline;
+    margin-bottom: 0.25rem;
+  }
 </style>

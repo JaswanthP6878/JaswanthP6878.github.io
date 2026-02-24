@@ -1,29 +1,94 @@
 ---
 import BaseLayout from "./BaseLayout.astro";
-const { frontmatter } = Astro.props;
+import { formatTagLabel } from "../lib/blog";
+
+interface Props {
+  title: string;
+  date: string;
+  tags: string[];
+  description: string;
+  canonicalUrl?: string;
+}
+
+const { title, date, tags, description, canonicalUrl } = Astro.props;
+const formattedDate = new Date(`${date}T00:00:00Z`).toLocaleDateString("en-US", {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+  timeZone: "UTC"
+});
+
+const articleUrl =
+  canonicalUrl ?? (Astro.site ? new URL(Astro.url.pathname, Astro.site).toString() : undefined);
+const articleJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  headline: title,
+  datePublished: `${date}T00:00:00.000Z`,
+  dateModified: `${date}T00:00:00.000Z`,
+  description,
+  url: articleUrl
+};
 ---
 
-<BaseLayout title="JP's blog">
-    <h2 class="blog-title">{frontmatter.title}</h2>
-    <span class="date-item">{frontmatter.date}</span>
-    <slot />
+<BaseLayout
+  title={`${title} | JP's blog`}
+  description={description}
+  canonical={articleUrl}
+  ogType="article"
+  publishedTime={`${date}T00:00:00.000Z`}
+>
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify(articleJsonLd)} />
+
+  <header class="post-header">
+    <h2 class="blog-title">{title}</h2>
+    <p class="date-item">{formattedDate}</p>
+    <ul class="tags-list">
+      {tags.map((tag) => <li>{formatTagLabel(tag)}</li>)}
+    </ul>
+  </header>
+  <slot />
 </BaseLayout>
 
 <style is:global>
-    .blog-title {
-        margin-bottom: 0;
-    }
+  .post-header {
+    margin-top: 1rem;
+  }
 
-    .date-item {
-        color: #828282;
-    }
-    img {
-        max-width: 100%;
-        max-height: auto;
-    }
-    .astro-code {
-        padding-top: 0.4em;
-        padding-left: 1em;
-        padding-bottom: 1em;
-    }
+  .blog-title {
+    margin-bottom: 0;
+  }
+
+  .date-item {
+    color: #656565;
+    margin-top: 0.2rem;
+  }
+
+  .tags-list {
+    list-style: none;
+    margin: 0.6rem 0 1rem;
+    padding: 0;
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .tags-list li {
+    font-size: 0.8rem;
+    border: 1px solid #a2a2a2;
+    border-radius: 999px;
+    padding: 0.15rem 0.55rem;
+    color: #3f3f3f;
+  }
+
+  img {
+    max-width: 100%;
+    max-height: auto;
+  }
+
+  .astro-code {
+    padding-top: 0.4em;
+    padding-left: 1em;
+    padding-bottom: 1em;
+  }
 </style>

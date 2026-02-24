@@ -1,8 +1,9 @@
 ---
-layout: "../../layouts/BlogLayout.astro"
-title: An intiuitive model for understanding Git
-date: "2023-12-4"
-tags: ["Developer Tools"]
+title: "An intuitive model for understanding Git"
+date: "2023-12-04"
+tags: ["developer-tools"]
+summary: "A DAG-and-pointers mental model for Git internals that makes common commands easier to reason about."
+difficulty: "beginner"
 ---
 ## Introduction
 In my opinion git's interface is one of the most confusing things. A lot of developers I see also feel the same way. As I was slowly understanding git internals, I further get frustrated about how something which is build so simple and elegant can have such as bad interface. most developers simply remember the commands like some magic spells for this reason. I would like to talk about the mental model that I have formed to understand git. Even though I wont be going into the interface side of it, I think this can help us understand the interal elegance of the git system.

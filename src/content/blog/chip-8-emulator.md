@@ -1,8 +1,9 @@
 ---
-layout: "../../layouts/BlogLayout.astro"
-title: Creating an chip8 emulator..
+title: "Creating a CHIP-8 emulator"
 date: "2024-05-25"
-tags: ["systems programming"]
+tags: ["systems-programming"]
+summary: "Implementation notes from building a CHIP-8 emulator, including architecture, opcode execution, and sprite rendering details."
+difficulty: "intermediate"
 ---
 
 

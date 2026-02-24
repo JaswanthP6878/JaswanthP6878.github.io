@@ -1,8 +1,9 @@
 ---
-layout: "../../layouts/BlogLayout.astro"
-title: My  blog and why i am starting this...
+title: "My blog and why I am starting this"
 date: "2023-09-16"
 tags: ["personal"]
+summary: "Why I started writing technical notes, what I want to learn publicly, and the topics this blog will focus on."
+difficulty: "beginner"
 ---
 ### hello this is my first blog post
 I am creating this blog so that i can write about stuff i learn and also about some new ideas which i work on. I am very curious and keep learning new stuff each day and want to use a watered down version of the **feyman** technique to better understand those concepts. I meant watered down in the sense that probably no one would see this blog but i can put effort of explaining and writing about concepts i find will help me learn better.

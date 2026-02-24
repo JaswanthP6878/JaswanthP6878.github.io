@@ -1,49 +1,58 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
-
 import PostLink from "../../components/PostLink.astro";
-const posts = await Astro.glob("./*.md*");
+import { getPublishedPosts } from "../../lib/blog";
 
-const sortedPosts = posts.sort((a, b) => Date.parse(b.frontmatter.date) - Date.parse(a.frontmatter.date));
+const sortedPosts = await getPublishedPosts();
 ---
-<BaseLayout title="JP's blog">
-	<div class="headings">
-		<h3>Blog Posts</h3>
-		<h4><a href="/blog/by-tags">Blog posts by tags</a></h4>
-	</div>
-	<ul class="post-list">
-		{
-			sortedPosts.map((post) => {
-				return (
-					<PostLink
-						title={post.frontmatter.title}
-						url={post.url}
-						date={post.frontmatter.date}
-					/>
-				);
-			})
-		}
-	</ul>
+
+<BaseLayout title="JP's blog" description="Posts on backend systems, distributed systems, and implementation notes.">
+  <div class="headings">
+    <h3>Blog Posts</h3>
+    <h4><a class="page-nav-link" href="/blog/by-tags">Browse by tags</a></h4>
+  </div>
+  <ul class="post-list">
+    {
+      sortedPosts.map((post) => (
+        <PostLink title={post.data.title} url={`/blog/${post.slug}/`} date={post.data.date} />
+      ))
+    }
+  </ul>
 </BaseLayout>
 
 <style>
-	.post-list {
-		margin-left: 0;
-		padding-left: 0;
-		list-style: none;
-	}
-	.bio {
-		margin-top: 20px;
-	}
-	.headings {
-		margin-top: 1em;
-		display: flex;
-		flex-direction: row;
-		align-items: center;
-		justify-content: space-between;
-	}
-	h3,
-	h4 {
-		display: inline-block;
-	}
+  .post-list {
+    margin-left: 0;
+    padding-left: 0;
+    list-style: none;
+  }
+
+  .headings {
+    margin-top: 1em;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  h3,
+  h4 {
+    display: inline-block;
+  }
+
+  .page-nav-link {
+    text-decoration: none;
+    color: rgb(30, 28, 28);
+  }
+
+  .page-nav-link:hover {
+    color: black;
+    text-decoration: underline solid #2a7ae2 2px;
+  }
+
+  .page-nav-link:focus-visible {
+    outline: 2px solid #2a7ae2;
+    outline-offset: 2px;
+    border-radius: 0.15rem;
+  }
 </style>
