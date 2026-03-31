@@ -1,7 +1,7 @@
 ---
 title: "Variables are not boxes.. they are labels"
 date: "2026-03-30"
-tags: ["systems-programmimng"]
+tags: ["systems-programming"]
 summary: "Thoughts on the common notion that variables are boxes to hold data, rather they are labels"
 difficulty: "beginner"
 ---
