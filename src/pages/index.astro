@@ -10,13 +10,19 @@ const sortedPosts = posts.slice(0, 3);
 
 <BaseLayout title="Home" description="Backend and distributed systems engineering notes, projects, and implementation walkthroughs.">
   <div class="bio">
-    <p>
-    Hi, I’m Jaswanth. I'm a Systems engineer who builds close to the metal — distributed protocols, network servers, and OS internals. 
-    Currently pursuing a Master's in AI at Boston University to bring that depth to ML infrastructure.  </p>
+      <p>
+      I'm a backend and systems engineer with experience in distributed backends, Kubernetes internals and storage infrastructure. 
+      Passionate about distributed systems and how they scale to power modern infrastructure. Currently pursuing a Master's in AI at Boston University to deepen my knowledge and apply it to AI/ML infrastructure.
+    </p>
   </div>
   <div class="project">
     <h3>Projects</h3>
     <div class="projectList">
+      <ProjectCard
+        heading="Reel"
+        desc="Auto update k8s pods using docker webhooks"
+        link="https://github.com/JaswanthP6878/reel"
+      />
       <ProjectCard
         heading="Chip-8 emulator"
         desc="software emulator for running chip-8 spec games"
@@ -26,11 +32,6 @@ const sortedPosts = posts.slice(0, 3);
         heading="MapReduceMini"
         desc="An implementation map-reduce framework"
         link="https://github.com/JaswanthP6878/MapReduceMini"
-      />
-      <ProjectCard
-        heading="CodeCompete"
-        desc="1v1 code platform for friends to compete to solve cp problems."
-        link="https://github.com/JaswanthP6878/CodeCompete"
       />
     </div>
   </div>
