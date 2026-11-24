@@ -1,88 +1,86 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import ProjectCard from "../components/ProjectCard.astro";
 import PostLink from "../components/PostLink.astro";
-import { getPublishedPosts } from "../lib/blog";
+import { formatPostDate, getPublishedPosts } from "../lib/blog";
 
+// The home page is the blog: newest posts first, with the full archive linked once it grows.
+const HOME_POST_LIMIT = 10;
 const posts = await getPublishedPosts();
-const sortedPosts = posts.slice(0, 3);
+const homePosts = posts.slice(0, HOME_POST_LIMIT);
+const hasMore = posts.length > HOME_POST_LIMIT;
 ---
 
-<BaseLayout title="Home" description="Backend and distributed systems engineering notes, projects, and implementation walkthroughs.">
-  <div class="bio">
-      <p>
-      I'm a backend and systems engineer with experience in distributed backends, Kubernetes internals and storage infrastructure. 
+<BaseLayout title="Home" description="Backend and distributed systems engineering notes and implementation walkthroughs.">
+  <section class="bio">
+    <p>
+      I'm a backend and systems engineer with experience in distributed backends, Kubernetes internals and storage infrastructure.
       Passionate about distributed systems and how they scale to power modern infrastructure. Currently pursuing a Master's in AI at Boston University to deepen my knowledge and apply it to AI/ML infrastructure.
     </p>
-  </div>
-  <div class="project">
-    <h3>Projects</h3>
-    <div class="projectList">
-      <ProjectCard
-        heading="Reel"
-        desc="Auto update k8s pods using docker webhooks"
-        link="https://github.com/JaswanthP6878/reel"
-      />
-      <ProjectCard
-        heading="Chip-8 emulator"
-        desc="software emulator for running chip-8 spec games"
-        link="https://github.com/JaswanthP6878/chip8-emulator"
-      />
-      <ProjectCard
-        heading="MapReduceMini"
-        desc="An implementation map-reduce framework"
-        link="https://github.com/JaswanthP6878/MapReduceMini"
-      />
-    </div>
-  </div>
+  </section>
 
-  <div class="blogPosts">
-    <h3>Blog</h3>
-    <ul class="postList">
+  <section class="posts" aria-labelledby="posts-title">
+    <h2 id="posts-title" class="section-title">Posts</h2>
+    <ul class="post-list">
       {
-        sortedPosts.map((post) => (
-          <PostLink title={post.data.title} url={`/blog/${post.slug}/`} date={post.data.date} />
+        homePosts.map((post) => (
+          <PostLink
+            title={post.data.title}
+            url={`/blog/${post.slug}/`}
+            date={formatPostDate(post.data.date)}
+            summary={post.data.summary}
+          />
         ))
       }
     </ul>
-  </div>
-
-  <h4 class="allposts"><a href="/blog">All posts &rightarrow;</a></h4>
+    <p class="more-links">
+      {hasMore && <a href="/blog">All posts &rarr;</a>}
+      <a href="/blog/by-tags">Browse by topic &rarr;</a>
+    </p>
+  </section>
 </BaseLayout>
 
 <style>
   .bio {
-    margin-top: 2rem;
+    margin: 2.5rem 0 2.75rem;
   }
 
-  .projectList {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
-    gap: 0.75rem;
+  .bio p {
+    margin: 0;
   }
 
-  .postList {
-    margin-left: 0;
-    padding-left: 0;
-    list-style: none;
-    min-height: 20vh;
-  }
-
-  .allposts {
-    text-align: end;
-  }
-
-  .allposts {
+  .section-title {
+    margin: 0 0 1.25rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--rule);
+    font-size: 0.7rem;
     font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted-soft);
   }
 
-  .allposts a {
+  .post-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .more-links {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1.5rem;
+    margin: 1.5rem 0 0;
+    font-size: 0.9rem;
+  }
+
+  .more-links a {
+    color: var(--muted);
     text-decoration: none;
-    color: var(--ink-soft);
   }
 
-  .allposts a:hover {
+  .more-links a:hover {
     color: var(--accent);
-    text-decoration-line: underline;
+    text-decoration: underline;
+    text-decoration-color: currentColor;
   }
 </style>

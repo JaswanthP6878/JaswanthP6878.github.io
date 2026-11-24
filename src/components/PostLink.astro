@@ -1,11 +1,19 @@
 ---
-const { title, date, url } = Astro.props;
+interface Props {
+    title: string;
+    date: string;
+    url: string;
+    summary?: string;
+}
+
+const { title, date, url, summary } = Astro.props;
 ---
-<li>
+<li class:list={{ "has-summary": summary }}>
     <h4>
         <a class= "post-link" href={url}>{title}</a>
     </h4>
     <span class="post-meta">{date}</span>
+    {summary && <p class="post-summary">{summary}</p>}
 </li>
 
 
@@ -31,5 +39,16 @@ const { title, date, url } = Astro.props;
     .post-meta {
         font-size: 0.8rem;
         color: var(--muted);
+    }
+
+    li.has-summary {
+        margin-bottom: 1.6rem;
+    }
+
+    .post-summary {
+        margin: 0.25rem 0 0;
+        font-size: 0.95rem;
+        line-height: 1.55;
+        color: var(--ink-soft);
     }
 </style>
