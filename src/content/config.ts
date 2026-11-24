@@ -1,6 +1,5 @@
 import { defineCollection, z } from "astro:content";
 
-const tagPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const isoDatePattern = /^\d{4}-\d{2}-\d{2}$/;
 
 const blog = defineCollection({
@@ -8,7 +7,8 @@ const blog = defineCollection({
   schema: z.object({
     title: z.string().min(8),
     date: z.string().regex(isoDatePattern, "Date must use YYYY-MM-DD"),
-    tags: z.array(z.string().regex(tagPattern, "Use lowercase slug tags")).min(1),
+    // Free-form topics: any name works ("Rust", "machine learning", "C++").
+    tags: z.array(z.string().trim().min(1, "Tags cannot be empty")).min(1),
     summary: z.string().min(24),
     heroImage: z.string().optional(),
     draft: z.boolean().default(false),

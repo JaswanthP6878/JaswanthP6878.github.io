@@ -4,7 +4,6 @@ import { join } from "node:path";
 const blogDir = join(process.cwd(), "src/content/blog");
 const files = (await readdir(blogDir)).filter((file) => file.endsWith(".md") || file.endsWith(".mdx"));
 
-const tagPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
 
 const errors = [];
@@ -25,25 +24,7 @@ for (const file of files) {
     errors.push(`${file}: date must be YYYY-MM-DD`);
   }
 
-  const tagsMatch = fm.match(/^tags:\s*\[(.*)\]\s*$/m);
-  if (!tagsMatch) {
-    errors.push(`${file}: tags must be inline YAML array`);
-  } else {
-    const tags = tagsMatch[1]
-      .split(",")
-      .map((t) => t.trim().replace(/^"|"$/g, "").replace(/^'|'$/g, ""))
-      .filter(Boolean);
-
-    if (tags.length === 0) {
-      errors.push(`${file}: at least one tag is required`);
-    }
-
-    for (const tag of tags) {
-      if (!tagPattern.test(tag)) {
-        errors.push(`${file}: tag '${tag}' must be lowercase-slug format`);
-      }
-    }
-  }
+  // Tags are free-form and validated by the content schema (src/content/config.ts) at build time.
 }
 
 if (errors.length > 0) {

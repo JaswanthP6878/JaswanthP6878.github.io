@@ -2,7 +2,7 @@
 import { getCollection } from "astro:content";
 import BlogLayout from "../../layouts/BlogLayout.astro";
 import type { BlogPost } from "../../lib/blog";
-import { isPublished, sortPosts } from "../../lib/blog";
+import { isPublished, sortPosts, tagKey } from "../../lib/blog";
 
 export async function getStaticPaths() {
   const posts = await getCollection("blog", isPublished);
@@ -20,7 +20,8 @@ const canonicalUrl =
 const relatedPosts = sortPosts(
   (await getCollection("blog", isPublished)).filter((candidate) => {
     if (candidate.slug === post.slug) return false;
-    return candidate.data.tags.some((tag) => post.data.tags.includes(tag));
+    const postTags = new Set(post.data.tags.map(tagKey));
+    return candidate.data.tags.some((tag) => postTags.has(tagKey(tag)));
   })
 ).slice(0, 3);
 ---

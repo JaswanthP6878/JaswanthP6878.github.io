@@ -12,9 +12,15 @@ export function sortPosts(posts: BlogPost[]): BlogPost[] {
 
 export function formatTagLabel(tag: string): string {
   return tag
-    .split("-")
+    .trim()
+    .split(/[-\s]+/)
     .map((chunk) => chunk.charAt(0).toUpperCase() + chunk.slice(1))
     .join(" ");
+}
+
+/** Comparison key so "Rust", "rust" and "distributed-systems" / "Distributed Systems" count as one topic. */
+export function tagKey(tag: string): string {
+  return tag.trim().toLowerCase().replace(/[-\s]+/g, " ");
 }
 
 export function isPublished(post: BlogPost): boolean {

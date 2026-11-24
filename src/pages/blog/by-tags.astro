@@ -1,16 +1,18 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import PostLink from "../../components/PostLink.astro";
-import { formatTagLabel, getPublishedPosts, sortPosts } from "../../lib/blog";
+import { formatTagLabel, getPublishedPosts, sortPosts, tagKey } from "../../lib/blog";
 
 const posts = await getPublishedPosts();
-const tagGroups = new Map<string, typeof posts>();
+// Grouped case-insensitively; the first spelling seen is used as the heading.
+const tagGroups = new Map<string, { label: string; posts: typeof posts }>();
 
 for (const post of posts) {
-  for (const tag of post.data.tags) {
-    const existing = tagGroups.get(tag) ?? [];
-    existing.push(post);
-    tagGroups.set(tag, sortPosts(existing));
+  for (const tag of new Set(post.data.tags.map(tagKey))) {
+    const label = post.data.tags.find((t) => tagKey(t) === tag) ?? tag;
+    const group = tagGroups.get(tag) ?? { label, posts: [] };
+    group.posts = sortPosts([...group.posts, post]);
+    tagGroups.set(tag, group);
   }
 }
 
@@ -25,9 +27,9 @@ const sortedTags = [...tagGroups.keys()].sort((a, b) => a.localeCompare(b));
   {
     sortedTags.map((tag) => (
       <section>
-        <h2 class="tag-name">{formatTagLabel(tag)}</h2>
+        <h2 class="tag-name">{formatTagLabel(tagGroups.get(tag)!.label)}</h2>
         <ul class="post-list">
-          {tagGroups.get(tag)?.map((post) => (
+          {tagGroups.get(tag)!.posts.map((post) => (
             <PostLink title={post.data.title} url={`/blog/${post.slug}/`} date={post.data.date} />
           ))}
         </ul>
