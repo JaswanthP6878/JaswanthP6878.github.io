@@ -1,94 +1,318 @@
 ---
+import type { MarkdownHeading } from "astro";
 import BaseLayout from "./BaseLayout.astro";
 import { formatTagLabel } from "../lib/blog";
 
 interface Props {
-  title: string;
-  date: string;
-  tags: string[];
-  description: string;
-  canonicalUrl?: string;
+    title: string;
+    date: string;
+    tags: string[];
+    description: string;
+    canonicalUrl?: string;
+    headings?: MarkdownHeading[];
 }
 
-const { title, date, tags, description, canonicalUrl } = Astro.props;
-const formattedDate = new Date(`${date}T00:00:00Z`).toLocaleDateString("en-US", {
-  year: "numeric",
-  month: "short",
-  day: "numeric",
-  timeZone: "UTC"
-});
+const {
+    title,
+    date,
+    tags,
+    description,
+    canonicalUrl,
+    headings = [],
+} = Astro.props;
+const formattedDate = new Date(`${date}T00:00:00Z`).toLocaleDateString(
+    "en-US",
+    {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        timeZone: "UTC",
+    },
+);
+
+// Table of contents: built from the post's ## and ### markdown headings.
+const tocHeadings = headings
+    .filter((heading) => heading.depth >= 2 && heading.depth <= 3)
+    .map((heading) => ({
+        ...heading,
+        text: heading.text.replace(/:\s*$/, ""),
+    }));
+const tocBaseDepth = Math.min(...tocHeadings.map((heading) => heading.depth));
+const showToc = tocHeadings.length >= 2;
 
 const articleUrl =
-  canonicalUrl ?? (Astro.site ? new URL(Astro.url.pathname, Astro.site).toString() : undefined);
+    canonicalUrl ??
+    (Astro.site
+        ? new URL(Astro.url.pathname, Astro.site).toString()
+        : undefined);
 const articleJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "BlogPosting",
-  headline: title,
-  datePublished: `${date}T00:00:00.000Z`,
-  dateModified: `${date}T00:00:00.000Z`,
-  description,
-  url: articleUrl
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: title,
+    datePublished: `${date}T00:00:00.000Z`,
+    dateModified: `${date}T00:00:00.000Z`,
+    description,
+    url: articleUrl,
 };
 ---
 
 <BaseLayout
-  title={`${title} | JP's blog`}
-  description={description}
-  canonical={articleUrl}
-  ogType="article"
-  publishedTime={`${date}T00:00:00.000Z`}
+    title={`${title} | JP's blog`}
+    description={description}
+    canonical={articleUrl}
+    ogType="article"
+    publishedTime={`${date}T00:00:00.000Z`}
 >
-  <script slot="head" type="application/ld+json" set:html={JSON.stringify(articleJsonLd)} />
-
-  <header class="post-header">
-    <h2 class="blog-title">{title}</h2>
-    <p class="date-item">{formattedDate}</p>
-    <ul class="tags-list">
-      {tags.map((tag) => <li>{formatTagLabel(tag)}</li>)}
-    </ul>
-  </header>
-  <slot />
+    <script
+        slot="head"
+        type="application/ld+json"
+        set:html={JSON.stringify(articleJsonLd)}
+    />
+    <div class="post-layout">
+        <div class="post-content">
+            <header class="post-header">
+                <h2 class="blog-title">{title}</h2>
+                <p class="date-item">{formattedDate}</p>
+                <ul class="tags-list">
+                    {tags.map((tag) => (
+                        <li>{formatTagLabel(tag)}</li>
+                    ))}
+                </ul>
+            </header>
+            <slot />
+        </div>
+        {showToc && (
+            <aside class="post-toc" aria-label="Table of contents">
+                <nav class="toc-nav">
+                    <p class="toc-title">On this page</p>
+                    <ul class="toc-list">
+                        {tocHeadings.map((heading) => (
+                            <li
+                                class:list={[
+                                    "toc-item",
+                                    { "toc-item-nested": heading.depth > tocBaseDepth },
+                                ]}
+                            >
+                                <a
+                                    href={`#${heading.slug}`}
+                                    data-toc-link={heading.slug}
+                                >
+                                    {heading.text}
+                                </a>
+                            </li>
+                        ))}
+                    </ul>
+                </nav>
+            </aside>
+        )}
+    </div>
 </BaseLayout>
 
+<script>
+    const ACTIVE_OFFSET_PX = 120;
+    let cleanupToc: (() => void) | undefined;
+
+    function initToc() {
+        cleanupToc?.();
+        cleanupToc = undefined;
+
+        const entries = Array.from(
+            document.querySelectorAll<HTMLAnchorElement>("[data-toc-link]"),
+        )
+            .map((link) => ({
+                link,
+                target: document.getElementById(link.dataset.tocLink ?? ""),
+            }))
+            .filter(
+                (entry): entry is { link: HTMLAnchorElement; target: HTMLElement } =>
+                    entry.target !== null,
+            );
+        if (entries.length === 0) return;
+
+        let frame = 0;
+        const updateActive = () => {
+            frame = 0;
+            let activeIndex = -1;
+            for (let i = 0; i < entries.length; i++) {
+                if (entries[i].target.getBoundingClientRect().top <= ACTIVE_OFFSET_PX) {
+                    activeIndex = i;
+                } else {
+                    break;
+                }
+            }
+            // Short final sections may never reach the top; treat page bottom as the last one.
+            const atBottom =
+                window.scrollY > 0 &&
+                window.innerHeight + window.scrollY >=
+                    document.documentElement.scrollHeight - 2;
+            if (atBottom) activeIndex = entries.length - 1;
+
+            entries.forEach(({ link }, i) => {
+                const isActive = i === activeIndex;
+                link.classList.toggle("active", isActive);
+                if (isActive) link.setAttribute("aria-current", "location");
+                else link.removeAttribute("aria-current");
+            });
+        };
+        const scheduleUpdate = () => {
+            if (!frame) frame = requestAnimationFrame(updateActive);
+        };
+
+        const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+        const clickHandlers = entries.map(({ link, target }) => {
+            const onClick = (event: MouseEvent) => {
+                if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+                    return;
+                }
+                // Also stops Astro's view-transition router from handling the click.
+                event.preventDefault();
+                target.scrollIntoView({
+                    behavior: reduceMotion.matches ? "auto" : "smooth",
+                    block: "start",
+                });
+                history.replaceState(history.state, "", `#${target.id}`);
+            };
+            link.addEventListener("click", onClick);
+            return { link, onClick };
+        });
+
+        window.addEventListener("scroll", scheduleUpdate, { passive: true });
+        window.addEventListener("resize", scheduleUpdate);
+        updateActive();
+
+        cleanupToc = () => {
+            window.removeEventListener("scroll", scheduleUpdate);
+            window.removeEventListener("resize", scheduleUpdate);
+            if (frame) cancelAnimationFrame(frame);
+            clickHandlers.forEach(({ link, onClick }) =>
+                link.removeEventListener("click", onClick),
+            );
+        };
+    }
+
+    // Runs on first load and after every view-transition navigation.
+    document.addEventListener("astro:page-load", initToc);
+    initToc();
+</script>
+
+<style>
+    .post-layout {
+        position: relative;
+    }
+
+    .post-toc {
+        display: none;
+    }
+
+    /* Desktop: the TOC sits in the right-hand gutter beside the 60%-wide column,
+       so the article keeps its full reading width. */
+    @media screen and (min-width: 1200px) {
+        .post-toc {
+            display: block;
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: calc(100% + 2.5rem);
+            width: min(15rem, calc(20vw - 4rem));
+        }
+    }
+
+    .toc-nav {
+        position: sticky;
+        top: 2rem;
+        max-height: calc(100vh - 4rem);
+        overflow-y: auto;
+        margin-top: 1.4rem;
+        font-size: 0.85rem;
+        line-height: 1.4;
+    }
+
+    .toc-title {
+        margin: 0 0 0.6rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #656565;
+    }
+
+    .toc-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        border-left: 1px solid #d6d6d6;
+    }
+
+    .toc-item a {
+        display: block;
+        margin-left: -1px;
+        padding: 0.25rem 0 0.25rem 0.9rem;
+        border-left: 2px solid transparent;
+        color: #656565;
+        text-decoration: none;
+        transition:
+            color 0.15s ease,
+            border-color 0.15s ease;
+    }
+
+    .toc-item-nested a {
+        padding-left: 1.8rem;
+        font-size: 0.8rem;
+    }
+
+    .toc-item a:hover {
+        color: #000;
+    }
+
+    .toc-item a.active {
+        color: #2a7ae2;
+        border-left-color: #2a7ae2;
+    }
+</style>
+
 <style is:global>
-  .post-header {
-    margin-top: 1rem;
-  }
+    .post-header {
+        margin-top: 1rem;
+    }
 
-  .blog-title {
-    margin-bottom: 0;
-  }
+    .blog-title {
+        margin-bottom: 0;
+    }
 
-  .date-item {
-    color: #656565;
-    margin-top: 0.2rem;
-  }
+    .date-item {
+        color: #656565;
+        margin-top: 0.2rem;
+    }
 
-  .tags-list {
-    list-style: none;
-    margin: 0.6rem 0 1rem;
-    padding: 0;
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-  }
+    .tags-list {
+        list-style: none;
+        margin: 0.6rem 0 1rem;
+        padding: 0;
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
 
-  .tags-list li {
-    font-size: 0.8rem;
-    border: 1px solid #a2a2a2;
-    border-radius: 999px;
-    padding: 0.15rem 0.55rem;
-    color: #3f3f3f;
-  }
+    .tags-list li {
+        font-size: 0.8rem;
+        border: 1px solid #a2a2a2;
+        border-radius: 999px;
+        padding: 0.15rem 0.55rem;
+        color: #3f3f3f;
+    }
 
-  img {
-    max-width: 100%;
-    max-height: auto;
-  }
+    .post-content :is(h2, h3, h4)[id] {
+        scroll-margin-top: 1.5rem;
+    }
 
-  .astro-code {
-    padding-top: 0.4em;
-    padding-left: 1em;
-    padding-bottom: 1em;
-  }
+    img {
+        max-width: 100%;
+        max-height: auto;
+    }
+
+    .astro-code {
+        padding-top: 0.4em;
+        padding-left: 1em;
+        padding-bottom: 1em;
+    }
 </style>
