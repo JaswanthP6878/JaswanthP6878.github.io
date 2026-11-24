@@ -41,18 +41,15 @@ const sortedPosts = await getPublishedPosts();
   }
 
   .page-nav-link {
+    font-size: 0.9rem;
+    font-weight: 400;
     text-decoration: none;
-    color: rgb(30, 28, 28);
+    color: var(--muted);
   }
 
   .page-nav-link:hover {
-    color: black;
-    text-decoration: underline solid #2a7ae2 2px;
-  }
-
-  .page-nav-link:focus-visible {
-    outline: 2px solid #2a7ae2;
-    outline-offset: 2px;
-    border-radius: 0.15rem;
+    color: var(--accent);
+    text-decoration: underline;
+    text-decoration-color: currentColor;
   }
 </style>

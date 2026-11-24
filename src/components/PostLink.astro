@@ -10,21 +10,26 @@ const { title, date, url } = Astro.props;
 
 
 <style>
+    li {
+        margin: 0 0 1.1rem;
+    }
     h4 {
-        margin-bottom: 0;
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 500;
     }
     .post-link {
         text-decoration: none;
-        color: rgb(30, 28, 28)
+        color: var(--ink);
     }
-    .post-link:hover{
-        color: black;
-        text-decoration: underline solid #2a7ae2 2px ;
+    .post-link:hover {
+        color: var(--accent);
+        text-decoration: underline;
+        text-decoration-color: currentColor;
     }
 
     .post-meta {
-        font-size: small;
-        color: #494545;
+        font-size: 0.8rem;
+        color: var(--muted);
     }
-
 </style>

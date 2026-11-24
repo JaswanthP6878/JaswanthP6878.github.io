@@ -52,14 +52,13 @@ const sortedPosts = posts.slice(0, 3);
 
 <style>
   .bio {
-    margin-top: 1em;
+    margin-top: 2rem;
   }
 
   .projectList {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    row-gap: 10px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+    gap: 0.75rem;
   }
 
   .postList {
@@ -73,13 +72,17 @@ const sortedPosts = posts.slice(0, 3);
     text-align: end;
   }
 
+  .allposts {
+    font-weight: 500;
+  }
+
   .allposts a {
     text-decoration: none;
-    color: black;
+    color: var(--ink-soft);
   }
 
   .allposts a:hover {
+    color: var(--accent);
     text-decoration-line: underline;
-    color: black;
   }
 </style>

@@ -14,51 +14,46 @@ const { heading, desc, link } = Astro.props;
 
 <style>
     .project {
-        width: calc(100% / 3.5);
-        padding: 1em;
+        border: 1px solid var(--rule);
+        border-radius: 4px;
+        transition:
+            border-color 0.15s ease,
+            background-color 0.15s ease;
     }
     .project a {
+        display: block;
+        height: 100%;
+        padding: 0.8rem 1rem;
         text-decoration: none;
-        color: black;
+        color: var(--ink);
     }
     .heading {
-        text-decoration: underline solid rgb(116, 115, 115) 0.1em;
         width: 100%;
         display: flex;
+        font-weight: 600;
     }
     .arrow {
-        display: none;
         margin-left: auto;
+        color: var(--muted-soft);
+        transition:
+            color 0.15s ease,
+            transform 0.15s ease;
     }
     .project:hover {
-        background-color: lightgrey;
-        cursor: grab;
+        border-color: var(--muted-soft);
+        background-color: var(--paper-soft);
     }
     .project:hover .heading {
-        text-decoration: underline solid lightgray 0.2em;
+        color: var(--accent);
     }
-
     .project:hover .arrow {
-        display: inline;
+        color: var(--accent);
+        transform: translateX(2px);
     }
     .project p {
-        margin-top: 0.3em;
-    }
-
-    @media screen and (max-width: 450px) {
-        .project {
-            width: calc(100% / 2.5);
-            padding: 1em;
-        }
-        .project:hover {
-            background-color: lightgrey;
-            cursor: grab;
-        }
-        .project:hover .heading {
-            text-decoration: underline solid black 1px;
-        }
-        .project p {
-            margin-top: 0.3em;
-        }
+        margin: 0.3em 0 0;
+        font-size: 0.85rem;
+        line-height: 1.45;
+        color: var(--muted);
     }
 </style>
