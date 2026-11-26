@@ -31,9 +31,41 @@ Here we can see how simple it is to start a goroutine at `#1`. We define a func 
 
 But what actually happens when we write `go`? Where does that function run, how much memory does it take, and who decides when it gets a CPU? That's what this post is about.
 
+## Usage of goroutines
+
+The point that gets brought up everywhere Go is used is the **volume** of goroutines running at any point of the execution. By their very design, goroutines are meant to be spawned liberally: tens of thousands, sometimes hundreds of thousands, each starting with only a few KB of stack. What does this scalability give us? We can spawn them wherever and whenever we need. Take a web server: we can spawn a separate goroutine for each request we're handling, and each of those can spawn more as the application needs.
+
+Even though this is great, it leads to one more problem: how do we allocate actual resources to them? How do we assign compute to tens of thousands of these tasks on a machine with maybe 8 or 64 cores? The usual answer in an OS or multithreading class is `OS threads`. But OS threads are limited: they're a big and bulky way of handling multithreading, and they add a substantial amount of overhead once you have a large number of parallel tasks.
+
+Go's solution is to have a runtime that schedules and manages the goroutines, multiplexing many goroutines onto a few OS threads. The design is called the **GMP** model, and expanding the three letters already tells us most of what the model gives us:
+
+$$
+\underbrace{G}_{\substack{\text{Goroutine}\\
+\text{lightweight unit of execution}}}
+\qquad
+\underbrace{M}_{\substack{\text{Machine}\\
+\text{OS / worker thread}}}
+\qquad
+\underbrace{P}_{\substack{\text{Processor}\\
+\text{logical scheduling resource}}}
+$$
+
+The main idea of the GMP model is to separate the concerns: goroutines (G) are scheduled onto processors (P), and threads (M) do the actual running, given that $|G| \gg |M|$.
+
+G and M are what you'd expect. P is the clever part. It isn't a CPU; it's closer to a *license to run Go code*. The comment at the top of the scheduler's source says it in one line: an M must have an associated P to execute Go code. That gives one invariant that shapes everything else:
+
+$$
+\bigl|\{\, m \in M : m \text{ is running Go code} \,\}\bigr| \;\le\; k,
+\qquad k = |P| = \mathtt{GOMAXPROCS}
+$$
+
+There can be more threads than Ps (a thread blocked in a system call, for example, doesn't hold one), but at most $k$ of them run Go code at once. By default $k$ is the number of CPU cores, and since Go 1.25 it also respects a container's CPU limit on Linux.
+
+Why the extra P layer at all? Before Go 1.1 there wasn't one. Every thread pulled goroutines from one global queue behind one global mutex, and threads kept handing goroutines off to each other. On an 8-core server, the runtime ended up spending a real chunk of CPU just fighting over that lock. Dmitry Vyukov's 2012 design doc (linked at the end) introduced P to give each core its own queue, plus work stealing on top. That's still the design today.\
+
 ## Anatomy of a goroutine
 
-To the runtime, a goroutine is just two things: a small struct that describes it, and a stack.
+Before going on and talking about the runtime, I wanna take a needed tangent and talk about the strucutre of the Go routine itself. To the runtime, a goroutine is just two things: a small struct that describes it, and a stack.
 
 The struct is called `g`. Trimmed down to the fields that matter for this post, it looks like this:
 
@@ -67,39 +99,7 @@ $$
 
 The thread number is reserved address space rather than memory actually touched, but it still isn't free: every thread is also bookkeeping in the kernel. Switching is cheaper too. When a goroutine stops running, the runtime saves a handful of registers (the stack pointer, the program counter and a few others) into `g.sched` and loads another goroutine's, all in user space. Switching threads has to go through the kernel.
 
-So goroutines are cheap. But they're not threads, and only threads actually run on CPUs, so something has to decide which goroutine runs on which thread, and when.
-
-## Usage of goroutines
-
-The point that gets brought up everywhere Go is used is the **volume** of goroutines running at any point of the execution. By their very design, goroutines are meant to be spawned liberally: tens of thousands, sometimes hundreds of thousands, each starting with only a few KB of stack. What does this scalability give us? We can spawn them wherever and whenever we need. Take a web server: we can spawn a separate goroutine for each request we're handling, and each of those can spawn more as the application needs.
-
-Even though this is great, it leads to one more problem: how do we allocate actual resources to them? How do we assign compute to tens of thousands of these tasks on a machine with maybe 8 or 64 cores? The usual answer in an OS or multithreading class is `OS threads`. But OS threads are limited: they're a big and bulky way of handling multithreading, and they add a substantial amount of overhead once you have a large number of parallel tasks.
-
-Go's solution is to have a runtime that schedules and manages the goroutines, multiplexing many goroutines onto a few OS threads. The design is called the **GMP** model, and expanding the three letters already tells us most of what the model gives us:
-
-$$
-\underbrace{G}_{\substack{\text{Goroutine}\\
-\text{lightweight unit of execution}}}
-\qquad
-\underbrace{M}_{\substack{\text{Machine}\\
-\text{OS / worker thread}}}
-\qquad
-\underbrace{P}_{\substack{\text{Processor}\\
-\text{logical scheduling resource}}}
-$$
-
-The main idea of the GMP model is to separate the concerns: goroutines (G) are scheduled onto processors (P), and threads (M) do the actual running, given that $|G| \gg |M|$.
-
-G and M are what you'd expect. P is the clever part. It isn't a CPU; it's closer to a *license to run Go code*. The comment at the top of the scheduler's source says it in one line: an M must have an associated P to execute Go code. That gives one invariant that shapes everything else:
-
-$$
-\bigl|\{\, m \in M : m \text{ is running Go code} \,\}\bigr| \;\le\; k,
-\qquad k = |P| = \mathtt{GOMAXPROCS}
-$$
-
-There can be more threads than Ps (a thread blocked in a system call, for example, doesn't hold one), but at most $k$ of them run Go code at once. By default $k$ is the number of CPU cores, and since Go 1.25 it also respects a container's CPU limit on Linux.
-
-Why the extra P layer at all? Before Go 1.1 there wasn't one. Every thread pulled goroutines from one global queue behind one global mutex, and threads kept handing goroutines off to each other. On an 8-core server, the runtime ended up spending a real chunk of CPU just fighting over that lock. Dmitry Vyukov's 2012 design doc (linked at the end) introduced P to give each core its own queue, plus work stealing on top. That's still the design today.
+So goroutines are cheap. But they're not threads, and only threads actually run on CPUs, so something has to decide which goroutine runs on which thread, and when and that is where the runtime comes in.
 
 ## The Runtime Design
 
@@ -165,7 +165,7 @@ Go keeps the idea but changes a few details:
 - **Not every idle thread hunts for work.** A thread looking for work is *spinning*, burning CPU, so the runtime limits spinning threads to half the busy Ps: a new thread may only start spinning if $2s < k - \ell$, where $s$ is the number of spinning threads and $\ell$ the number of idle Ps. That's enough to pick up new work quickly, without an idle program burning all your cores.
 
 
-Here $t_i$ counts how many times $p_i$ has scheduled. Back to our web server: when `connectionHandler` spawns handlers, the runtime notices there are idle Ps and wakes a thread for one of them. That thread finds nothing locally, steals half of P0's queue, and the next idle P does the same with whichever queue it finds first:
+Back to our web server: when `connectionHandler` spawns handlers, the runtime notices there are idle Ps and wakes a thread for one of them. That thread finds nothing locally, steals half of P0's queue, and the next idle P does the same with whichever queue it finds first:
 
 ```text
 After a few steals, each thief taking half of a victim's queue:
