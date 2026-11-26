@@ -2,7 +2,7 @@
 import { getCollection } from "astro:content";
 import BlogLayout from "../../layouts/BlogLayout.astro";
 import type { BlogPost } from "../../lib/blog";
-import { isPublished, sortPosts, tagKey } from "../../lib/blog";
+import { isPublished } from "../../lib/blog";
 
 export async function getStaticPaths() {
   const posts = await getCollection("blog", isPublished);
@@ -17,13 +17,6 @@ const { Content, headings } = await post.render();
 const canonicalUrl =
   post.data.canonicalUrl ??
   (Astro.site ? new URL(`/blog/${post.slug}/`, Astro.site).toString() : undefined);
-const relatedPosts = sortPosts(
-  (await getCollection("blog", isPublished)).filter((candidate) => {
-    if (candidate.slug === post.slug) return false;
-    const postTags = new Set(post.data.tags.map(tagKey));
-    return candidate.data.tags.some((tag) => postTags.has(tagKey(tag)));
-  })
-).slice(0, 3);
 ---
 
 <BlogLayout
@@ -37,36 +30,4 @@ const relatedPosts = sortPosts(
   <article>
     <Content />
   </article>
-  {relatedPosts.length > 0 && (
-    <section class="related-posts">
-      <h3>Related posts</h3>
-      <ul>
-        {relatedPosts.map((related) => (
-          <li><a href={`/blog/${related.slug}/`}>{related.data.title}</a></li>
-        ))}
-      </ul>
-    </section>
-  )}
 </BlogLayout>
-
-<style>
-  .related-posts {
-    margin-top: 3rem;
-    border-top: 1px solid var(--rule);
-    padding-top: 1rem;
-  }
-
-  .related-posts h3 {
-    margin: 0;
-    font-size: 0.7rem;
-    font-weight: 500;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--muted-soft);
-  }
-
-  .related-posts ul {
-    margin-top: 0.4rem;
-    padding-left: 1.1rem;
-  }
-</style>
