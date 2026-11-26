@@ -64,7 +64,13 @@ const articleJsonLd = {
         <div class="post-content">
             <header class="post-header">
                 <h2 class="blog-title">{title}</h2>
-                <p class="date-item">{formattedDate}</p>
+                <div class="post-meta-row">
+                    <p class="date-item">{formattedDate}</p>
+                    <button type="button" class="width-toggle" data-width-toggle>
+                        <span aria-hidden="true">&harr;</span>
+                        <span data-width-label>Wider</span>
+                    </button>
+                </div>
                 <ul class="tags-list">
                     {tags.map((tag) => (
                         <li>{formatTagLabel(tag)}</li>
@@ -182,9 +188,40 @@ const articleJsonLd = {
         };
     }
 
+    function initWidthToggle() {
+        const button = document.querySelector<HTMLButtonElement>("[data-width-toggle]");
+        if (!button) return;
+        const label = button.querySelector("[data-width-label]");
+        const root = document.documentElement;
+
+        const sync = () => {
+            const wide = root.dataset.width === "wide";
+            if (label) label.textContent = wide ? "Narrower" : "Wider";
+            button.title = wide ? "Use the narrower text column" : "Use a wider text column";
+        };
+
+        button.onclick = () => {
+            const wide = root.dataset.width !== "wide";
+            if (wide) root.dataset.width = "wide";
+            else delete root.dataset.width;
+            try {
+                localStorage.setItem("reading-width", wide ? "wide" : "normal");
+            } catch {
+                // Storage unavailable (e.g. private mode): the choice lasts for this page only.
+            }
+            sync();
+        };
+        sync();
+    }
+
+    function initPostPage() {
+        initToc();
+        initWidthToggle();
+    }
+
     // Runs on first load and after every view-transition navigation.
-    document.addEventListener("astro:page-load", initToc);
-    initToc();
+    document.addEventListener("astro:page-load", initPostPage);
+    initPostPage();
 </script>
 
 <style>
@@ -206,6 +243,54 @@ const articleJsonLd = {
             bottom: 0;
             left: calc(100% + 3rem);
             width: min(13rem, calc((100vw - var(--measure)) / 2 - 4.5rem));
+        }
+
+        /* The wide column leaves too little margin for the TOC until the screen is wider. */
+        :global(html[data-width="wide"]) .post-toc {
+            display: none;
+        }
+    }
+
+    @media screen and (min-width: 1500px) {
+        :global(html[data-width="wide"]) .post-toc {
+            display: block;
+        }
+    }
+
+    .post-meta-row {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-top: 0.7rem;
+    }
+
+    .width-toggle {
+        flex-shrink: 0;
+        padding: 0.1rem 0;
+        border: 0;
+        background: none;
+        font: inherit;
+        font-size: 0.8rem;
+        color: var(--muted);
+        cursor: pointer;
+        transition: color 0.15s ease;
+    }
+
+    .width-toggle:hover {
+        color: var(--accent);
+    }
+
+    .width-toggle:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+        border-radius: 2px;
+    }
+
+    /* On small screens the column already fills the width, so the toggle would do nothing. */
+    @media screen and (max-width: 800px) {
+        .width-toggle {
+            display: none;
         }
     }
 
@@ -278,7 +363,7 @@ const articleJsonLd = {
     }
 
     .date-item {
-        margin: 0.7rem 0 0;
+        margin: 0;
         font-size: 0.85rem;
         color: var(--muted);
     }

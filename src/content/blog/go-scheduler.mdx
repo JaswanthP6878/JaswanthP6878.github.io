@@ -1,0 +1,86 @@
+---
+title : Understanding the go's runtime scheduler
+date: "2026-11-24"
+tags: ["Systems programming"]
+summary: "A deep dive into go's runtime scheduler"
+difficulty: "intermediate"
+---
+
+Main structure:
+- Start with a simple intro of a go routine
+- anatomy of a go routine, talk about the address space and where there are run and the size
+  - at the end start with the need of a go runtime
+- Go's Runtime: follow and on the need and introduce the GMP model
+  - talk about needed specifics
+  - lead to workstealing algorithm
+- Talk about the work stealing algorithm
+  - ML like definition of algorithm
+
+One of the most fascinating parts about the Go programming language to me are the `goroutines`. just start go routine with the use of the keyword `go`. These functions are not "colored"(refer Rob Nystroms measure of the colored functions if needed) they can be go functions that can be run as a goroutine. for example lets take a simple timer code to beep to stdout after a brief 1 second and we want to spawn it in the background
+
+```go
+func startBeeper() {
+	var makeSureGoroutineIsRunning sync.WaitGroup
+	makeSureGoroutineIsRunning.Add(1)
+	go func() { // #1
+		makeSureGoroutineIsRunning.Done()
+		time.Sleep(1 * time.Second)
+		fmt.Println("Beep, time's up!!")
+	}
+	makeSureGoroutineIsRunning.Wait()
+}
+
+func main() {
+	startBeeper()
+	// do some other work
+	///...
+}
+```
+
+Here we can see how simple is it to start a go routine at `1`. we define a func (which is a nice way to package, the goroutines body) and start it with the go keyword. The go-routine gets scheduled and starts working towards completion, and after one second a beep gets printed to start timer. All the extra code is just boiler plate to make sure i have the go routine running, nothing too complicated and pretty straightforward but just a flavor of `fork-join` in go's world.
+
+
+## Usage of goroutines
+The main point that gets brought up in all the places that go gets used is the **volume** of go-routines running at anypoint of the execution. The goroutines by the very nature of their design are meant to spawned very liberally, 10's of thousands (and sometimes even to 100's of thousands) and also each of them start with only a Few KB (but grow as needed). But what does this scalability gives us? We can spawn them whereever and whenever*, Take a webserver for example, we can spawn seperate go-routines for each request we are handling, which in turn spawn some more as needed by the application.
+
+Even though this is great, this also leads to one more problem, how do we allocate actual resources to them i.e how do we assign compute to these 10's of thousands of `tasks` to run on server/servers. The general way of running these kind of parallel tasks if we go to a OS/Multithreading class is using `OS threads`. But OS threads are limited, they are big and bulky way of handling multithreading, They add substantial amount of overhead (when using a large number of parallel tasks).
+
+The Go's Solution is to have a Runtime, to schedule and manage the goroutines. The more formal definition of this is called as a "GMP" model of scheduling parallel tasks. The expansion of GMP definition actually give us an insight on what the model actual gives us.
+
+$$
+\underbrace{G}_{\substack{\text{Goroutine}\\
+\text{Lightweight unit of execution}}}
+\qquad
+\underbrace{M}_{\substack{\text{Machine}\\
+\text{ OSthread / Worker threads}}}
+\qquad
+\underbrace{P}_{\substack{\text{Processor}\\
+\text{Logical scheduling resource}}}
+$$
+
+The Main Idea of the GMP models is so seperate the concern of scheduling the Goroutines (G) on the Processors (P) by using some threads (M), given the constraint that G >>> M.
+
+## The Runtime Design
+The Goroutines that are initiated are started have to be queued before they can be run by the runtime, The GoRuntime uses a 2-level queue for managing the created goroutines.
+These consist of a local Per-P queue and a Global Queue. The local Per-P queue is the perprocessor thats handled by one of the threads (M). When a go routine is spawaned, the gouroutine is added to the parents same P queue, This enables cache locality and simplifies the design. The Global Queue is useful in handling two types of tasks, one are overflow GoRoutines that are not able to fit on the per-P queue(usually they have 256 slots) and also *syscall* goroutine call backs that are not spawned by any of the currently running goroutines (can be thought of having no parent spawning them but rather being external!!!! expand on this better and restrucutre it).
+
+This two level hierachy of the queues gives us a nice peformance gain, beacause per-P queue is being maintained, the GoRoutine tasks being run can be done quickly instead of just using a single global queue, as a single global queue would require a lot of syncrhoinzation between all the running worker threads.
+
+These 2-level queues give rise to a problem of skew in the goroutines being scheduled and handled which cause inefficiencies, For example, consider the previous scenario of a webserver spawing goroutines for each connections. If we have a single connectionHandler goroutine that takes in the connections and starts spawing the per-connection handler goroutines we can see that using this design they can all be scheduled on the same per-P queues as the main connectionHandler go routine and later spilled to the global queue. The connection handling goroutines are not being spread across the cores.
+
+> see if we can add a diagrama to represent the issue here.
+
+To address this issue, The go runtime schduler employs a **Work stealing** approch of spreading of the tasks.
+
+## Work stealing scheduling
+
+The genearal idea of the work stealing approach is each of the worker thread *steals* tasks from other worker thread's queue if it does not have any work that it has to do currently. This stealing is not pinned or mapped for any specific thread pair but rather worker thread pick a random thread which has work to be done and steals it and starts running them.
+  
+Lets formalize the concurrency model before defining the work stealing model. The concurrency model used in Go is the "Fork-Join" model. spawning goroutines using `go` keyword is forking, and usually later we join them (or wait for their completion at the join point). Now lets formalize the workstealing algorithm and write the main steps: 
+
+1. At a fork point, add tasks to the tail of the deque associated with that worker thread (M)
+2. 
+
+
+ > https://cs.opensource.google/go/go/+/refs/tags/go1.27.4:src/runtime/proc.go;l=59 The go runtime code for better understanding the go runtime. maybe use this as part of the research
+> https://docs.google.com/document/d/1TTj4T2JO42uD5ID9e89oa0sLKhJYD0Y_kqxDv3I3XMw/edit?tab=t.0

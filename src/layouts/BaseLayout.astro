@@ -39,6 +39,22 @@ const canonicalUrl =
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
+    <script is:inline>
+      // Apply the saved reading width before first paint. Astro's page transitions reset
+      // <html> attributes on every navigation, so re-apply it after each swap too.
+      (() => {
+        const applyReadingWidth = () => {
+          let wide = false;
+          try {
+            wide = localStorage.getItem("reading-width") === "wide";
+          } catch {}
+          if (wide) document.documentElement.dataset.width = "wide";
+          else delete document.documentElement.dataset.width;
+        };
+        applyReadingWidth();
+        document.addEventListener("astro:after-swap", applyReadingWidth);
+      })();
+    </script>
     <slot name="head" />
 
     <meta property="og:title" content={title} />
@@ -78,6 +94,11 @@ const canonicalUrl =
     --measure: 38rem;
   }
 
+  /* "Wider" reading mode, toggled from the post header. */
+  html[data-width="wide"] {
+    --measure: 52rem;
+  }
+
   /* Garamond has a small x-height, so the base size is larger than a sans-serif would need. */
   html {
     font-size: 19px;
@@ -95,6 +116,13 @@ const canonicalUrl =
     max-width: var(--measure);
     margin: 0 auto;
     padding: 0 1.5rem;
+    transition: max-width 0.25s ease;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    body {
+      transition: none;
+    }
   }
 
   main {
@@ -152,6 +180,19 @@ const canonicalUrl =
   img {
     max-width: 100%;
     height: auto;
+  }
+
+  /* ---- Math (MathJax SVG, rendered at build time) ---- */
+  /* MathJax sizes itself from the x-height, which is small in Garamond; scale up to match the text. */
+  mjx-container[jax="SVG"] {
+    font-size: 110%;
+  }
+
+  mjx-container[display="true"] {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0.15rem 0;
   }
 
   /* ---- Code ---- */
